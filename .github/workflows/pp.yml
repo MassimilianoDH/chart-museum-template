@@ -1,0 +1,66 @@
+name: "Helm Chart Package and Push" 
+
+on:
+  release:
+    types: ["published"]
+  
+jobs:
+  helm:
+    runs-on: "ubuntu-latest"
+    
+    env:
+      HELM_VERSION: "3.6.0"
+      HELM_REPO_URL: "https://charts.ORGANIZATION.com"
+      HELM_PUSH_VERSION: "v0.9.0"
+    
+
+    steps:
+      # checkout the code (git clone with fetch-depth=0... use 1 to fetch only the HEAD reference)
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      
+      # set the environment variables with the name of the release tag and the chart name
+      # add a hyphen to the printf $i"-" statement for complex versioning semantics
+      - name: Set Env
+        run: | 
+          echo '=====> Setting up environment variables'
+          release_tag=$(echo ${{ github.ref }} | awk -F '/' '{print $3}')
+          chart_name=$(echo $release_tag | awk -F '-' '{print $1}')
+          chart_version=$(echo $release_tag | awk -F $chart_name- '{print $2}')
+          echo "RELEASE_TAG_VERSION=$(echo $chart_version)" >> $GITHUB_ENV
+          echo "CHART_NAME=$(echo $chart_name)" >> $GITHUB_ENV
+      
+      # setup helm environment
+      - name: Setup Helm v${{ env.HELM_VERSION }} Environment
+        run: |
+          set -o errexit
+          echo '=====> Setting up HELM'
+          wget -q https://get.helm.sh/helm-v${{ env.HELM_VERSION }}-linux-amd64.tar.gz
+          tar -zxf helm-v${{ env.HELM_VERSION }}-linux-amd64.tar.gz
+          sudo mv linux-amd64/helm /usr/local/bin/helm
+          helm plugin install --version ${{ env.HELM_PUSH_VERSION }} https://github.com/chartmuseum/helm-push.git
+          helm version
+      
+      - name: Package Chart
+        run: |
+          echo '=====> Adding helm repo'
+          helm repo add ORGANIZATION --username ${{ secrets.CHARTMUSEUM_USER }} --password ${{ secrets.CHARTMUSEUM_PASS }} ${{ env.HELM_REPO_URL }}
+          echo '=====> packaging chart ${{ env.CHART_NAME }} version => ${{ env.RELEASE_TAG_VERSION }}'
+          chart_path=$(helm package charts/${{ env.CHART_NAME }} | awk '{print $NF}')
+          chart_file=$(echo $chart_path | awk -F '/' '{print $7}')
+          chart_file_version=$(echo $chart_path | awk -F '${{ env.CHART_NAME }}-' '{print $2}')
+          echo '=====> setting environment variables for next step'
+          echo "CHART_PATH=$(echo $chart_path)" >> $GITHUB_ENV
+          echo "CHART_FILE_VERSION=$(echo $chart_file_version | awk -F '.tgz' '{print $1}')" >> $GITHUB_ENV
+      - name: Chart Version Test
+        run: |
+          echo '=====> comparing chart version with release tag'
+          ./.github/scripts/version-test.sh \
+            ${{ env.RELEASE_TAG_VERSION }} \
+            ${{ env.CHART_FILE_VERSION }} 
+      - name: Push Chart
+        run: |
+          echo '=====> Pushing chart to Chart Museum'
+          helm push --force ${{ env.CHART_PATH }} ORGANIZATION
