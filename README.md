@@ -1,3 +1,3 @@
-# Helm Charts Repo Template
+# Chart Museum Repo Template
 
-A template repository for Helm Charts
+A template repository for Chart Museum
