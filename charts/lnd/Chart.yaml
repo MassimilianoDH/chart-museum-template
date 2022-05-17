@@ -1,0 +1,9 @@
+apiVersion: v2
+name: lnd
+description: A Helm Chart for Lightning Network Daemon
+type: application
+version: 0.1.0
+appVersion: 0.14.3
+maintainers:
+  - name: MassimilianoDH
+    email: MassimilianoDH95@gmail.com

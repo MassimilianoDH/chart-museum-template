@@ -51,5 +51,6 @@ jobs:
           sudo mv ct /usr/local/bin/ct
           mkdir ~/.ct
           mv etc/*.yaml ~/.ct/
+          
       - name: Test Charts
         run: ct lint $(ct list-changed)

@@ -1,3 +1,5 @@
+# Ctrl+F and replace all instaces of ORGANIZATION and WORKFLOW
+
 name: "Helm Chart Package and Push" 
 
 on:
@@ -54,12 +56,14 @@ jobs:
           echo '=====> setting environment variables for next step'
           echo "CHART_PATH=$(echo $chart_path)" >> $GITHUB_ENV
           echo "CHART_FILE_VERSION=$(echo $chart_file_version | awk -F '.tgz' '{print $1}')" >> $GITHUB_ENV
+          
       - name: Chart Version Test
         run: |
           echo '=====> comparing chart version with release tag'
           ./.github/scripts/version-test.sh \
             ${{ env.RELEASE_TAG_VERSION }} \
             ${{ env.CHART_FILE_VERSION }} 
+
       - name: Push Chart
         run: |
           echo '=====> Pushing chart to Chart Museum'

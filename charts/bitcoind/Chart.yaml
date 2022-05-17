@@ -1,0 +1,9 @@
+apiVersion: v2
+name: bitcoind
+description: A Helm Chart for Bitcoin Core
+type: application
+version: 0.1.0
+appVersion: 0.22.0
+maintainers:
+  - name: MassimilianoDH
+    email: MassimilianoDH95@gmail.com

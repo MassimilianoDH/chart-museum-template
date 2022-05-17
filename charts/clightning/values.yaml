@@ -1,0 +1,124 @@
+###################################################################################
+##################################### REPLICAS ####################################
+###################################################################################
+replicaCount: 1
+
+###################################################################################
+####################################### IMAGE #####################################
+###################################################################################
+image:
+  name: "elementsproject/lightningd"
+  tag: latest
+  # pullPolicy: IfNotPresent # Always
+
+
+###################################################################################
+##################################### SERVICE #####################################
+###################################################################################
+service:
+  # nameOverride: "dummy-service"
+  type: "ClusterIP"
+  clusterIp: "None"  # set to "None" for headless service configuration
+  ports:
+    - port: 9735
+      targetPort: 9735
+      protocol: TCP
+      name: p2p-mainnet
+
+###################################################################################
+################################## container ports ################################
+###################################################################################
+# these are the ports opened in the container
+containerPorts:
+  - containerPort: 9735
+    protocol: TCP
+    name: p2p-mainnet
+
+###################################################################################
+################################## NODE SELECTOR ##################################
+###################################################################################
+# select a specific worker node of the kubernetes cluster
+nodeSelectorEnabled: false
+nodeSelector:
+  preemptible: "false"
+
+###################################################################################
+################################# SECURITY CONTEXT ################################
+###################################################################################
+# stablish what user and what privileges are used to run the bitcoin process
+securityContext:
+  enabled: false
+  runAsUser: 100
+  allowPrivilegeEscalation: false
+
+###################################################################################
+###################################### COMMAND ####################################
+###################################################################################
+# here you define the options for the node similarly to what you would do in the
+# command line;
+# c-lightning requires the RPC credentials and host
+
+command:
+  enabled: true
+
+  args: [
+    "--network=bitcoin",
+    "--log-level=debug",
+    "--bind-addr=127.0.0.1:9735",
+    "--allow-deprecated-apis=false",
+    "--bitcoin-rpcconnect=bitcoin-core",
+    "--bitcoin-rpcport=8332"
+  ]
+
+###################################################################################
+##################################### RESOURCES ###################################
+###################################################################################
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: "0.1"
+  limits:
+    memory: "2Gi"
+    cpu: "0.6"
+
+###################################################################################
+##################################### PROBES ######################################
+###################################################################################
+# use a generous grace period to aid with propper shutdowns.
+terminationGracePeriodSeconds: 300
+probesEnabled: true
+livenessProbe:
+  exec:
+    command:
+      - lightning-cli
+      - state
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
+  successThreshold: 1
+
+readinessProbe:
+  exec:
+    command:
+      - lightning-cli
+      - state
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
+  successThreshold: 1
+
+
+###################################################################################
+################################ DATA PERSISTENCY #################################
+###################################################################################
+dataPersistency:
+  enabled: false
+  storageClass: c-lightning-data
+  volumeMode: "Filesystem"
+  mountPath: /home/root/.lightning
+  capacity: "5Gi"
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain

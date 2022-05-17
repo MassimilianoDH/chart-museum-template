@@ -1,0 +1,18 @@
+{{- if and .Values.dataPersistency.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "bitcoind.persistenVolumeName" . }}
+spec:
+  storageClassName: {{ .Values.dataPersistency.storageClass }}
+  capacity:
+    storage: {{ .Values.dataPersistency.capacity }}
+  accessModes:
+    {{- range $.Values.dataPersistency.accessModes }}
+    - {{ . }}
+    {{- end }}
+  claimRef:
+    namespace: {{ .Release.Namespace }}
+    name: {{ include "bitcoind.persistenVolumeName" . }}
+  {{- toYaml .Values.dataPersistency.providerPvConfig | nindent 2 -}}
+{{- end }}
